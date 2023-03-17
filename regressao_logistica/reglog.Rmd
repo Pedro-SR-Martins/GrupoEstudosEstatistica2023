@@ -1,0 +1,573 @@
+---
+title: "Regressão logística"
+author: "Pedro S.R. Martins"
+date: '`r Sys.Date()`'
+output: 
+  slidy_presentation: default
+editor_options: 
+  markdown: 
+    wrap: 72
+---
+
+# Regressão logística
+
+O que esperar para o encontro de hoje?\
+**Teoria**
+
+-   Quando usar regressão logística\
+-   Diferenças entre regressão logística e regressão linear\
+-   Usos da regressão logística\
+-   Problemas ao usar regressão logística\
+-   Pressupostos da regressão logística\
+-   Coeficientes da regressão logística e interpretação\
+-   Avaliação do modelo (ajuste e outras métricas)
+
+**Prática**
+
+-   Regressão logística no R\
+-   Avaliação de pressupostos\
+-   Breve introdução a outliers
+
+# Quando usar regressão logística
+
+-   O primeiro passo para entender o uso da regressão logística é pensar
+    na sua variável dependente e qual sua distribuição;
+
+-   Esse é o primeiro passo para começar a entender modelos lineares
+    generalizados (*mesmo que muitas vezes não seja ensinado assim*)
+
+# Quando usar regressão logística
+
+-   Regressão logística é o tipo de ferramenta que usamos quando nossa
+    variável dependente (VD, DV ou Y) é categórica:
+    -   Com apenas duas categorias: regressão logística binária;\
+    -   Com 3+ categorias: regressão logística multinomial;\
+    -   Categorias **ordenadas**: regressão logística ordinal
+        (*proportional odds regression*)\
+-   Exemplos de $Y$ categórico:
+    -   Tem ou não doença (ou diagnóstico)
+    -   Passou ou não de ano
+    -   Acertou ou não uma questão
+    -   Apoia ou não cotas
+
+# Quando usar regressão logística
+
+-   De pouquinho, vamos pegando um pouco dos modelos generalizados\
+-   A ideia não é de que existem apenas duas distribuições no mundo, a
+    normal e a não normal\
+-   Para variáveis categóricas, como no caso do nosso $Y$ hipotético,
+    poderíamos assumir que existe uma distribuição subjacente que recebe
+    o nome de binomial ou Bernoulli (no caso especial em que os valores
+    estão restritos a [0,1])
+
+$$Y \sim b(n, p)  \equiv Y \sim Bern(p)$$
+
+```{r , warning = FALSE, echo=FALSE, out.width="50%"}
+pacman::p_load(tidyverse, easystats, knitr)
+data.frame(Y = rbinom(500,prob = .7, size = 1)) %>% 
+  ggplot(aes(x=Y))+
+  geom_histogram(fill = "black", bins=30)+
+  theme_classic()+labs(title = "Binomial distribution [0,1] p ~ .7")
+
+set.seed(12345)
+data.frame(Y = rbinom(500,prob = .7, size = 5)) %>% 
+  ggplot(aes(x=Y))+
+  geom_histogram(fill = "black", bins=30)+
+  theme_classic()+labs(title = "Binomial distribution [1,5] n = 5, p ~ .7")
+```
+
+# Diferenças entre regressão logística e regressão linear
+
+-   Regressão linear (OLS) normalmente apresenta a seguinte carinha
+    (como vimos anterioremente):
+
+$$\hat{y}_{i} = \beta_{0} + \beta_{1}x_{1i} +\beta_{n}x_{ni} + e_{i}$$
+
+-   Utilizar esse tipo de modelo para um $y$ dicotômico (ou categórico)
+    pode gerar resultados esquisitos, para dizer o mínimo
+
+-   Devemos ter cuidado em relação a isso, pois os programas não fazem
+    essa distinção pra gente e alguns aceitam variáveis categóricas
+    dentro do comando de regressão linear
+
+# Diferenças entre regressão logística e regressão linear
+
+-   Por que isso acontece? Por que a equação não é adequada?
+
+-   Entre outros motivos, esse tipo de modelo tem muitos pressupostos,
+    como vimos anteriormente
+
+-   Um dos *principais* pressupostos violados é o de linearidade
+
+# Diferenças entre regressão logística e regressão linear
+
+-   Quando trabalhamos com a regressão logística, não vamos tenta
+    explicar $Y$ *per se*, mas sim a $P(Y)$
+
+```{r echo=FALSE}
+pacman::p_load(tidyverse, easystats)
+base <- readRDS("bancolog.rds")
+
+fitfake <- lm(as.numeric(passoumat) ~ estudo + notaport,
+              data = base)
+base$predlin <- predict(fitfake)
+fitlog <- glm(passoumat ~ estudo + notaport,
+              data = base,
+              family = binomial("logit"))
+base$predlog <- predict.glm(fitlog, type = "response")
+base %>% 
+  mutate(passoumat = as.numeric(passoumat)-1,
+         predlin = predlin-1) %>% 
+  ggplot(aes(x = predlog ,
+             y = passoumat))+
+  # geom_point()+
+  geom_jitter(alpha = .18, width = 0.055, height = 0.025)+
+  geom_smooth(aes(x = predlin , y = passoumat),
+              method = "lm", se = F, color = "dodgerblue",
+              linetype = "dashed",
+              linewidth = 1.5)+
+  theme_classic()+
+  labs(title = "Linear regression vs. Logistic regression",
+       y = "Approved [0,1]",
+       x = "Predicted values")+
+  geom_smooth(aes(x = predlog , y = passoumat),
+              se = F,  method = "glm", 
+    color = "red",
+              linewidth = 1.5,
+    method.args = list(family = "binomial"))+
+  geom_text(aes(x= .5, y =.2, label = "Logistic curve"), family = "serif",
+            color = "red")+
+  geom_text(aes(x= -.25, y =-.5, label = "Regression line"), family = "serif",
+            color = "dodgerblue")
+```
+
+# Diferenças entre regressão logística e regressão linear
+
+-   Equação regressão linear
+
+$$\hat{y}_{i} = \beta_{0} + \beta_{1}x_{1i} +\beta_{n}x_{ni} + \varepsilon_{i}$$
+
+-   Equação regressão logística
+
+$$P(Y_{i}) = \frac{1}{1+e^{-(\beta_{0} + \beta_{1}x_{1i} +\beta_{n}x_{ni})}}$$
+
+# Usos da regressão logística
+
+-   Voltando um pouco, sabemos que nosso $Y$ está restrito a um conjunto
+    de $[0,1]$\
+
+-   Nossas VI's ($X's$) não estão necessariamente restritos a esses
+    mesmos valores (e.g., escores z)
+
+-   O que aquela equação permite é que o $Y$ seja "convertido" de
+    valores (0,1) para $[-\infty, +\infty]$
+
+    -   De $Y$ para $P(Y)$ --\> Qualquer valor entre 0 e 1\
+    -   De probabilidades para chances --\> qualquer valor entre 0 e
+        $\infty$\
+    -   Logarítimo da chance --\> Qualquer valor entre
+        $[-\infty, +\infty]$
+
+**Lembrando**
+
+-   $Probabilidade = \frac{Evento}{Total}$
+
+-   $Chance = \frac{P(Evento)}{P(Não evento)}$
+
+-   Log é aquela matéria da escola que todos foram mal, então, apenas um
+    exemplo:
+
+```{r}
+(.7/.3)
+log((.7/.3))
+(.3/.7)
+log((.3/.7))
+```
+
+Colocar imagem aqui
+
+# Usos da regressão logística
+
+Resumidamente, os objetivos são:
+
+-   Identificação de fatores associados com a VD (ainda é regressão);\
+-   Classificação: possibilita encaixar os casos em categorias e avaliar
+    medidas de acurácia para essa classificação.
+
+# Problemas ao usar regressão logística
+
+-   Estamos, de certa forma, iniciando a apresentação dos pressupostos
+
+**Primeira treta**\
+- Informação incompleta
+
+```{r}
+set.seed(56744)
+data.frame(Y = rbinom(500,prob = .7, size = 1),
+           X = rbinom(500,prob = .1, size = 3)) %>% 
+  xtabs(~., data = .)
+```
+
+# Problemas ao usar regressão logística
+
+**Segunda treta**
+
+-   Separação completa
+
+```{r echo=FALSE}
+data.frame(y<- c(0,0,0,0,1,1,1,1),
+           x1<-c(1,2,3,3,5,6,10,11)) %>% 
+  ggplot(aes(x = x1 ,
+             y = y))+
+  # geom_point()+
+  geom_jitter(width = 0.055, height = 0.025)+
+  theme_classic()+
+  geom_smooth(se = F,  method = "glm", 
+    color = "red",
+              linewidth = .5,
+    method.args = list(family = "binomial"))
+```
+
+# Problemas ao usar regressão logística
+
+**Terceira treta**\
+Superdispersão\*\
+Essa daqui é mais difícil de entender, talvez faça mais sentido em algum
+momento posterior em que se estiver trabalhando com dados de contagem.
+Fica para o futuro.
+
+# Pressupostos
+
+Quais são os pressupostos?\
+Abaixo estão listados os principais
+
+1\. Variância não nula no $Y$
+
+2\. Independência dos erros
+
+3\. Linearidade entre os previsores contínuos e o logit da variável Y
+(Box-Tidwell)
+
+4\. Ausência de multicolinearidade
+
+5.  Ausência de outliers
+
+# Coeficientes da regressão logística e interpretação
+
+A partir daqui, a coisa pode ficar bem feia dependendo do seu ânimo
+prévio com a matemática da coisa.\
+Os coeficientes da regressão logística são apresentados em *log odds*
+(daí toda aquela conversa sobre transformação dos dados)\
+A interpretação desse tipo de coeficiente é bem complicado, uma vez que
+não estamos acostumados a pensar em logarítimos
+
+```{r echo=FALSE}
+parameters(glm(passoumat ~ estudo + notaport,data = base,
+              family = binomial("logit"))) %>% kable(., digits = 3)
+```
+
+# Coeficientes da regressão logística e interpretação
+
+A interpretação fica mais fácil quando usamos o Odds-ratio (OR) para
+interpretar os resultados.\
+Em alguns programas, esse resultado pode vir com o nome de *Exp(b)*
+
+-   O OR indica a associação entre a variável independente e o desfecho
+    em termos de chance. Analisando o intervalo de confiança (IC), os
+    valores de OR são significativos quando não tocam 1. Exemplo de OR
+    significativo: 1,6 (IC 1,2 -- 1,8). Exemplo de OR não significativo:
+    1,6 (IC 0,8 -- 1,8).\
+
+```{r echo=FALSE}
+parameters(glm(passoumat ~ estudo + notaport,data = base,
+              family = binomial("logit")), exponentiate = T) %>% kable(., digits = 3)
+```
+
+# Coeficientes da regressão logística e interpretação
+
+*Aprofundando o conhecimento do odds ratio*
+
+-   Para uma VI categórica: se eu sou do grupo de referência, eu tenho
+    (valor do odds) vezes mais chance de pertencer ao grupo referência
+    da variável dependente, do que pessoas do grupo não referência
+    da VI. Os odds são razão de chance, quantas vezes um grupo é mais
+    provável de estar na categoria desfecho do que o outro grupo. Essa
+    interpretação é sempre relativa à categoria escolhida como
+    referência. Importante: em casos de OR significativos, mas menores
+    que 1 a interpretação apenas assume o formato de menores chance.
+    Exemplo: OR significativo de 0,6: se estou no grupo de referência da
+    VI, tenho menos chance de estar no grupo de referência da VD. Não
+    podemos fazer a "multiplicação" descrita anteriormente.\
+-   Para uma VI contínua: para cada uma unidade a mais na VI, eu tenho
+    (valor do odds) vezes mais chance de pertencer ao grupo referência
+    da variável dependente.
+
+| Odds-ratio | Reference |
+|------------|-----------|
+| 1.5        | Small     |
+| 3.5        | Moderate  |
+| 9.0        | Large     |
+
+: <https://imaging.mrc-cbu.cam.ac.uk/statswiki/FAQ/effectSize>
+
+# Avaliação do modelo (ajuste e outras métricas)
+
+-   Ajuste geral do modelo: o modelo se ajusta bem aos dados? --\>
+    Hosmer-Lemeshow Goodness-of-Fit Test
+
+-   O modelo é melhor do que um modelo sem nenhum previsor? --\> i.e., o
+    modelo é significativo? --\> Teste de qui-quadrado (seu modelo vs.
+    modelo nulo)
+
+-   Meu modelo 2 é melhor que meu modelo 1? --\> métricas para
+    comparação entre modelos AIC, BIC, Deviance (menores valores indicam
+    melhor ajuste)
+
+-   Existe uma variância explicada pelo modelo? --\> **Não!** Existem
+    Pseudo R² que tentam simular um R² de regressão linear, mas não
+    apresentam exatamente a mesma funcionalidade. Alguns autores sugerem
+    que eles podem ser entendidos como uma métrica de "tamanho de
+    efeito" geral OU para comparar modelos. Quanto maior, melhor.
+
+# Avaliação do modelo (ajuste e outras métricas)
+
+-   Acurácia geral (valores corretamente preditos/ total)
+
+    -   A acurácia geral pode receber o nome de R² count (Long & Freese,
+        2014) 
+    -   $$R^2_{count} = \frac{1}{n}*\sum_{j}n_{jj}$$
+
+-   Valores de sensibilidade e especificidade.
+
+    -   A sensibilidade nos informa o percentual de verdadeiros
+        positivos $P(\hat{y} = 1| y = 1)$
+
+    -   A especificidade nos diz o percentual de verdadeiros negativos
+        $P(\hat{y} = 0| y = 0)$
+
+
+# Prática - Regressão logística no R
+
+Subindo o banco de dados e inspencionando
+
+```{r}
+pacman::p_load(tidyverse, easystats, car, janitor, jtools)
+base <- readRDS("bancolog.rds")
+glimpse(base)
+```
+
+
+# Regressão logística no R
+
+
+```{r}
+base <- base %>% 
+  mutate(interessemat = factor(interessemat,
+                               levels = c(0,1,2),
+                               labels = c("Nenhum",
+                                          "Moderado",
+                                          "Muito")))
+head(base)
+```
+
+# Regressão logística no R
+
+
+
+```{r}
+data.frame(psych::describe(base)) %>% select(n, mean, sd, median, min, max)
+```
+
+
+```{r}
+base %>% 
+  select(passoumat, interessemat) %>%  
+  group_by(passoumat) %>% 
+  count(interessemat)
+```
+
+
+
+
+# Regressão logística no R
+
+Finalmente fazendo o modelo
+
+```{r}
+fit1 <- glm(passoumat ~ sexo + estudo + notaport + interessemat,
+            data = base,
+            family = binomial("logit"))
+```
+
+
+
+# Avaliação de pressupostos
+
+
+Linearidade
+
+```{r}
+boxTidwell(fit1$linear.predictors ~ estudo + notaport,
+              data = base)
+```
+  
+inspeção visual
+  
+  
+```{r}
+plot(fit1$linear.predictors ~ base$notaport)
+```
+
+# Avaliação de pressupostos
+
+
+Caso as coisas fiquem esquisitas aqui, você deve acrescentar a interação da sua VI com o log dela, algo como:  
+
+```{r}
+fit2 <- glm(passoumat ~ sexo + estudo + 
+              notaport + (notaport * log(notaport))+
+            
+            + interessemat,
+            data = base,
+            family = binomial("logit"))
+Anova(fit2)
+```
+
+
+# Avaliação de pressupostos
+Independência dos erros
+
+
+```{r,  warning = FALSE, echo=FALSE, out.width="50%"}
+data.frame(residuals = residuals.glm(fitlog, "deviance")) %>% 
+  rowid_to_column() %>% 
+  ggplot(aes(x = rowid, y=residuals))+
+  geom_point(color = "dodgerblue")+
+  geom_hline(yintercept = 0, color = "red", linewidth = 1.2)+
+  theme_classic()
+  
+plot(residuals.glm(fitlog, "deviance"))
+```
+
+# Avaliação de pressupostos
+
+Ausência de multicolinearidade  
+
+Até 5 pode ser considerado aceitável. Mas os valores poderiam ser melhores...  
+
+```{r}
+vif(fit1)
+```
+
+# Breve introdução a outliers
+
+```{r}
+check_outliers(fit1)
+```
+
+# Breve introdução a outliers
+
+```{r}
+# define crit betas as Belsley et al. 1980
+critbetas <- 2/sqrt(NROW(base))
+critbetas
+```
+
+```{r}
+dfbeta(fit1) %>% psych::describe() %>% data.frame() %>% select(min,max)
+```
+
+
+
+# Regressão logística no R
+
+
+
+```{r}
+summary(fit1)
+```
+
+
+
+# Regressão logística no R
+
+```{r}
+summ(fit1, exp = T, confint = T, digits = 3)
+```
+
+# Regressão logística no R
+
+Efeitos principais
+
+```{r}
+Anova(fit1)
+```
+
+# Regressão logística no R
+
+
+```{r}
+performance_hosmer(fit1)
+```
+
+
+# Regressão logística no R
+
+
+
+```{r}
+performance_pcp(fit1, method = "Gelman-Hill")
+#method = "Gelman-Hill" -- > acima de .5 é predito como 1
+```
+
+# Regressão logística no R
+  
+```{r}
+predicted <- predict(fit1, base, type = "response")
+predicted <- ifelse(predicted > 0.5, 1, 0)
+# Convert to factor: p_class
+predicted <- factor(predicted, 
+                  levels = c(0,1),
+                  labels = levels(base$passoumat))
+caret::confusionMatrix(reference = base$passoumat,
+                       data = predicted,
+                       positive = "passou")
+
+```
+
+
+# Visualizando o modelo
+
+
+```{r}
+effect_plot(fit1, pred = notaport,
+            plot.points = T,
+            interval = T)
+```
+
+# Visualizando o modelo
+
+
+```{r}
+effect_plot(fit1, pred = sexo,
+            interval = T)
+```
+
+
+
+
+# Adendo outliers
+
+
+```{r}
+source("https://raw.githubusercontent.com/Pedro-SR-Martins/my_funs/main/aux_glm")
+outresults <- glm_out(fit1)
+```
+
+```{r}
+outresults$plot_betas
+```
+
+```{r}
+outresults$noout_data %>% head()
+```

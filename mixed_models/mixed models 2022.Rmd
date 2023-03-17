@@ -1,0 +1,537 @@
+---
+title: "Apresentação sobre modelos lineares mistos"
+author: "Pedro S.R. Martins"
+date: "12/6/2021"
+output:
+  beamer_presentation: default
+  slidy_presentation: default
+---
+
+# Roteiro
+
+
+- Modelo linear geral
+- Pressupostos regressão
+- O que é multinível? (nested data)
+- Correlação intraclasse
+- Ignorando dados nested
+- Máquina da confusão
+- Efeitos fixos e efeitos aleatórios, uma introdução
+- Modelo multinível
+- Como realizar no R?
+  - Pacotes
+  - Apresentação dos modelos
+
+
+
+# Modelo linear geral
+
+  
+- O primeiro passo para entender modelos multinível é internalizar os conceitos principais da regressão
+
+- $$Y = \beta_{0} + \beta_{1}X_{1} + e $$
+  
+  
+# Conceitos de regressão
+  
+- **Intercepto**
+  - Ponto onde a reta toca o zero
+  - Ponto estimado quando todos os preditores são zero
+  - Média condicional de Y na ausência de outros preditores
+
+
+  
+  
+- **Slope**
+  - Inclinação da reta
+  - Taxa de crescimento de Y em função do X
+  - A cada um ponto em X, Y cresce slope (b) pontos (em modelos **lineares**)
+
+
+# Pressupostos da regressão
+
+- Um modelo de regressão é extremamente restritivo. 
+- Para que um modelo linear simples funcione precisamos cumprir vários requisitos
+  
+**Pressupostos**  
+
+1. Normalidade dos resíduos
+2. Ausência de outliers segundo a distância de mahalanobis, cook e leverage
+3. As variáveis previsoras devem ser quantitativas ou categóricas
+4. Variância não nula dos preditores
+5. Multicolinearidade (em português, as variáveis preditoras não podem estar muito correlacionadas entre si)
+6. Previsores não correlacionados com variáveis externas (variáveis que poderiam influenciar a saída final mas não foram incluídas no modelo)
+7. Homocedasticidade (as variâncias do erro devem ser as mesmas a cada nível das variáveis preditoras)
+8. **Erros independentes (os resíduos dos preditores não podem estar correlacionados entre si)**
+9. Linearidade entre as variáveis
+
+
+# Pressupostos da regressão
+
+- Uma coisa que sempre pode dar pau é o pressuposto dos erros não correlacionados
+- O que pode fazer com que erros sejam correlacionados?
+  - Participantes mais similares entre si do que com os demais da amostra
+  - O fato de um sujeito participar da pesquisa interfere no fato de outro sujeito participar
+  - **Medidas repetidas**
+
+# O que é multinível?
+
+- **Sinônimos**: *nested data*, dados hierárquicos
+- Os dados de pesquisa são, normalmente, hierárquicos ou *nested*
+![](Imagem1.svg)
+
+
+# Multinível como clínica
+
+![](Imagem2.svg)
+
+
+# Multinível como estudos longitudinais
+
+![](Imagem3.svg)
+
+# Correlação intra classe
+
+- *Intra class correlation*
+- Como saber se a variável de agrupamento é importante?
+- **Nem sempre um dado nested é tão importante que precisa ser tratado como tal**
+- A importância do agrupamento é medida por meio da correlação intra-classe (ICC)
+
+# ICC
+
+- O cálculo da ICC pode ser feito com diversas equações e em diferentes contextos.
+
+![](kooicc.png)
+
+# ICC
+
+- No contexto de modelos multinível o ICC assume uma forma genérica de:
+ 
+ 
+$$ ICC = \frac{var_{x}}{var_{x} + var_{erro total}}$$ 
+
+
+- Valores de ICC são restritos para estarem entre $0$ e $1$ $ICC[0,1]$
+- O ICC indica quanto do desfecho total pode ser atribuído à variável de agrupamento
+- ICC acima de 0,10 podem ser considerados como *relevantes*
+  - Caso uma variável **tenha que ser tratada como variável de agrupamento** (i.e., em casos de dados longitudinais) essa regra de bolso para valores relevantes de ICC deixa de ser tão importante
+  - A teoria é importante.
+  
+  
+# Ignorando dados *nested*
+
+O que ocorre quando ignoramos fonte de correlação entre os erros dos nossos participantes?
+  
+  
+  
+  
+- A correlação vira uma estimativa inapropriada dos erros padrão -> resultando em estimativas enviesadas dos valores de significância
+
+- Não conseguimos nunca cumprir os pressupostos do modelo
+
+# Máquina da confusão
+
+- última nota antes de entrar na parte mais prática do modelo
+   
+  
+
+- *Sinônimos*: modelo multinível = modelo de coeficiente aleatório; modelo linear misto; modelo linear hierárquico
+
+# Efeitos fixos e efeitos aleatórios, uma introdução
+  
+- Regressão linear só possui efeitos fixos
+- As estatísticas tradicionais trabalham com efeitos fixos
+
+# Efeitos fixos e efeitos aleatórios, uma introdução
+  
+- Efeito fixo
+  - Efeitos de variáveis em que todos os níveis foram incluídos no experimento (i.e., sexo)
+  - <span style="color:blue"> O efeito não varia significativamente entre os participantes </span>
+
+- Efeito aleatório
+
+  - <span style="color:blue"> Variáveis de *nesting* </span>
+
+  - Efeitos de variáveis de **"agrupamento" **e que incluem apenas uma parcela de todos os níveis possíveis
+  - Por exemplo, normalmente os pesquisadores querem investigar todos os humanos, mas incluem apenas uma parcela da população nos experimentos. Portanto, os participantes são fatores aleatórios
+  - <span style="color:blue"> O efeito varia significativamente entre os participantes </span>
+
+
+# Variância no slope e intercepto
+
+- **Intercepto aleatório (random intercept)**: considera variação no ponto de partida 
+
+
+```{r echo=FALSE}
+pacman::p_load(tidyverse)
+tibble(
+  tempo = c(1,2,3,4,
+            1,2,3,4,
+            1,2,3,4,
+            1,2,3,4,
+            1,2,3,4),
+  score = c(0,1,2,3,
+            2,3,4,5,
+            3,4,5,6,
+            -1,0,1,2,
+            1.3,2.3,3.3,4.3),
+  id = c(1,1,1,1,
+         2,2, 2,2,
+         3,3,3,3,
+         4,4, 4,4,
+         5,5,5,5)) %>% 
+  ggplot(aes(x = tempo,
+             y = score,#,
+             #color = factor(id)
+             )
+       )+
+  geom_point(aes(group = id, color = factor(id)))+
+  geom_line(aes(group = id, color = factor(id)))+
+  theme_classic()+
+  geom_smooth(method = "lm", se = F, 
+              color = "black",
+              linetype = "dashed",
+              size = 3)
+```
+
+
+# Variância no slope e intercepto
+
+- **Slope aleatório (random slope)**: considera a variação no crescimento 
+
+```{r echo=FALSE}
+
+tibble(
+  tempo = c(1,2,3,4,
+            1,2,3,4,
+            1,2,3,4,
+            1,2,3,4,
+            1,2,3,4),
+  score = c(1.3,2.3,3.3,4.3,
+            1.3,3.3,5.3,7.3,
+            1.3,0.3,-1.3,-2.3,
+            1.3,3.8,6.3,8.8,
+            1.3,-1.3,-3.3,-5.3),
+  id = c(1,1,1,1,
+         2,2, 2,2,
+         3,3,3,3,
+         4,4, 4,4,
+         5,5,5,5)) %>% 
+  ggplot(aes(x = tempo,
+                    y = score))+
+  geom_point(aes(group = id, color = factor(id)))+
+  geom_line(aes(group = id, color = factor(id)))+
+  theme_classic()+
+  geom_smooth(method = "lm", se = F, 
+              color = "black",
+              linetype = "dashed",
+              size = 3)
+```
+
+# Variância no slope e intercepto
+
+- **Slopes e interceptos aleatórios (random slopes and random intercepts)**: as pessoas começam em lugares diferentes e têm taxas de crescimento diferentes
+
+
+```{r echo=FALSE}
+tibble(
+  tempo = c(1,2,3,4,
+            1,2,3,4,
+            1,2,3,4,
+            1,2,3,4,
+            1,2,3,4),
+  score = c(0,1,2,3,
+            2,5,6,8,
+            0,3,6,9,
+            0,0,0,0,
+            9,9,9,9),
+  id = c(1,1,1,1,
+         2,2, 2,2,
+         3,3,3,3,
+         4,4, 4,4,
+         5,5,5,5)) %>% 
+ggplot(aes(x = tempo,
+                    y = score))+
+  geom_point(aes(group = id, color = factor(id)))+
+  geom_line(aes(group = id, color = factor(id)))+
+  theme_classic()+
+  geom_smooth(method = "lm", se = F, 
+              color = "black",
+              linetype = "dashed",
+              size = 3)+
+  ggpubr::stat_regline_equation(aes(label =  paste(..eq.label.., ..adj.rr.label.., sep = "~~~~")),)
+```
+
+# Como interpretar?
+
+- Variância no intercepto
+  - A variabilidade no ponto de partida
+  - Alta variância: pessoas começam em lugares muito diferentes
+  - Baixa variância: as pessoas começam em um lugar parecido
+
+
+# Como interpretar?
+
+- Variância no Slope
+  - A variabilidade na mudança ao longo do tempo
+  - Alta variância: pessoas têm taxas de crescimento muito diferentes
+  - Baixa variância: pessoas têm taxas de crescimento parecidas
+
+# Correlação entre o slope e o intercepto
+
+![](Imagem4.svg)
+
+
+
+
+# Modelo multinível
+
+
+-  Como é a equação de um modelo misto?
+
+-  Partindo de um modelo linear com todos os efeitos fixos temos:
+
+$$(1) -  y_{i} = \beta_{0} + \beta_{1}X_{1} + e_{i} $$
+
+
+- Se temos uma variável de agrupamento, a equação será modificada com a inserção de um subscrito
+
+
+$$(2) -  y_{ij} = \beta_{0j} + \beta_{1j}X_{1} + e_{ij} $$
+
+# Modelo multinível
+
+- Para modelos com intercepto aleatório, o intercepto é expandido para ter um parâmetro extra que indica sua variabilidade
+
+
+$$Nível 1 -  y_{ij} = \beta_{0j} + \beta_{1j}X_{1} + e_{ij}$$
+$$Nível 2 - \beta_{0j} = \gamma_{00} + U_{0j}$$
+
+# Modelo multinível
+
+- Para modelos com slope aleatório, o slope é expandido para ter um parâmetro extra que indica sua variabilidade
+
+
+$$Nível 1 -  y_{ij} = \beta_{0j} + \beta_{1j}X_{1} + e_{ij}$$
+
+$$Nível 2 - \beta_{0j} = \gamma_{00} + U_{0j}$$
+$$\beta_{1j}X_{1} = \gamma_{10}x_{ij} + U_{1j}x_{ij}$$
+
+
+# Modelo multinível
+
+- Juntando todas as equações e usando uma notação mais amigável
+
+
+$$y_{ij} = (\beta_{0j} + u_{0j}) + (\beta_{1j} + u_{1j})x_{ij} + e_{ij}$$
+- Mas chega de nerdice
+
+
+
+# Como realizar no R?
+
+- Dois pacotes principais: `nlme` e `lme4` 
+
+- Ambos pacotes apresentam vantagens e desvantagens
+
+
+- Por razões didáticas, vamos começar pelo `lme4`
+
+# Exemplo
+
+- banco de dados retirado de: http://www.bristol.ac.uk/cmm/learning/support/datasets/
+
+
+```{r}
+pacman::p_load(tidyverse, #data manipulation
+               jtools, #reporting results
+               emmeans,#marginal means
+               kableExtra,
+               knitr,
+               htmltools) 
+base<-readxl::read_excel("banco_exemplo_mlm.xlsx")
+
+```
+
+# Exemplo
+
+- Conferindo as variáveis
+- O banco possui `r NROW(base)` crianças organizadas em 73 institutos
+- Vamos usar o instituto como variável de agrupamento
+
+
+```{r}
+dlookr::diagnose(base) %>% 
+  kable(., digits = 3,
+        ) %>% 
+  kable_styling(full_width = F,
+                position = "center",
+                bootstrap_options = c("striped", "hover",
+                                      "condensed", "responsive"))
+```
+
+# Exemplo - consertando as variáveis
+
+
+- Vamos consertar as variáveis para ver os fatores certos
+
+
+```{r}
+base<-base %>% 
+  mutate(center = factor(center),
+         sex = factor(sex,
+                      levels = c(0,1),
+                      labels = c("Boy",
+                                 "Girl")))
+```
+
+
+- vendo se deu certo
+```{r}
+glimpse(base)
+```
+
+# Descritivas iniciais
+
+```{r}
+psych::describe(base) %>% 
+  kable(., digits = 3,
+        ) %>% 
+  kable_styling(full_width = F,
+                position = "center",
+                bootstrap_options = c("striped", "hover",
+                                      "condensed", "responsive"))
+```
+
+```{r}
+library(janitor)
+base %>% 
+  tabyl(sex)  %>% 
+  kable(., digits = 3,
+        ) %>% 
+  kable_styling(full_width = F,
+                position = "center",
+                bootstrap_options = c("striped", "hover",
+                                      "condensed", "responsive"))
+```
+
+
+
+```{r}
+base %>% 
+  tabyl(center)  %>% 
+  kable(., digits = 3,
+        ) %>% 
+  kable_styling(full_width = F,
+                position = "center",
+                bootstrap_options = c("striped", "hover",
+                                      "condensed", "responsive"))
+```
+
+
+
+# Modelando um modelo inicial
+
+
+- Vamos usar dois pacotes, `lme4` e `lmerTest`
+- O último apresenta valores de *p* para os coeficientes
+
+
+```{r message=FALSE, warning=FALSE}
+library(lme4)
+library(lmerTest)
+fit1 <- lmerTest::lmer(writen_score ~ 1 + teacher_score +
+                     (1|center),
+                    data = base,
+                   REML=F,
+                   control = lmerControl(optimizer = c("bobyqa")))
+```
+
+
+# Ajuste geral do modelo inicial
+
+- A função ranova dá algumas informações iniciais sobre o modelo
+
+```{r}
+lmerTest::ranova(fit1) %>% 
+  kable(., digits = 3,
+        ) %>% 
+  kable_styling(full_width = F,
+                position = "center",
+                bootstrap_options = c("striped", "hover",
+                                      "condensed", "responsive"))
+```
+
+
+
+# Ajuste geral do modelo inicial
+
+- A função summary apresenta algumas informações
+
+```{r}
+summary(fit1)
+```
+
+# Coeficientes, AIC, ICC, etc
+
+- Para poupar tempo, podemos usar o pacote `jtools` para apresentar várias informações de uma só vez
+
+
+```{r}
+jtools::summ(fit1,
+             confint = T, 
+             digits = 3)
+```
+
+
+# Coeficientes, AIC, ICC, etc
+
+- Valores padronizados de $b$
+
+
+```{r}
+effectsize::standardize_parameters(fit1) %>% 
+  kable(., digits = 3,
+        ) %>% 
+  kable_styling(full_width = F,
+                position = "center",
+                bootstrap_options = c("striped", "hover",
+                                      "condensed", "responsive"))
+```
+
+
+# Modelo com slopes aleatórios
+
+
+```{r}
+
+base<-base %>% 
+  mutate(tscore_centered = datawizard::center(teacher_score))
+fit2 <- lmerTest::lmer(writen_score ~ 1 + tscore_centered +
+                     (tscore_centered|center),
+                    data = base,
+                   REML=F,
+                   control = lmerControl(optimizer = c("bobyqa")))
+```
+
+
+# Apresentação dos coeficientes
+
+```{r}
+summ(fit2,
+     confint = T,
+     digits = 3)
+```
+
+# Comparação dos modelos
+
+```{r}
+anova(fit1, fit2) %>% 
+  kable(., digits = 3,
+        ) %>% 
+  kable_styling(full_width = F,
+                position = "center",
+                bootstrap_options = c("striped", "hover",
+                                      "condensed", "responsive"))
+```
+

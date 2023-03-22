@@ -1,0 +1,479 @@
+---
+title: "Bifactor models"
+author: "Pedro S.R. Martins"
+date: "`r Sys.Date()`"
+output: 
+  slidy_presentation: default   
+---
+
+# Roteiro
+
+O que esperar do encontro de hoje?
+
+**Parte teórica**
+
+1.  Continuidade das análises fatoriais
+
+2.  Histórico das análises bifactor
+
+3.  Para que serve?
+
+4.  Diferença entre bifactor e segunda ordem
+
+5.  Fundamentos da análise
+
+6.  Problemas com super ajuste (over fit)
+
+7.  Índices específicos
+
+# Roteiro
+
+**Parte prática**
+
+1.  Aplicações usando CFA
+
+2.  Adendo aplicações usando EFA
+
+# Continuidade das análises fatoriais
+
+-   Os modelos bifactor são extensões da aplicação de análise fatorial
+
+-   Modelo bifactor não é um modelo de duas dimensões
+
+-   É um tipo de aplicação que está em alta nas pesquisas recentes, por isso, é importante que saibamos interpretar seu uso
+
+```{r ,  echo=FALSE, out.width="50%"}
+pacman::p_load(lavaan, semPlot, tidyverse)
+model1 <- '
+S1 =~ x1 + x2 + x3
+S2 =~ x4 + x5 + x6
+S3 =~ x7 + x8 + x9
+g =~ x1 + x2 + x3 + x4 + x5 + x6 + x7 + x8 + x9 
+'
+semPaths(semPlotModel(model1),
+         style = "lisrel",sizeMan=6,sizeMan2=4.5,label.cex = 2,
+         edge.color = "black",rotation = 2,esize=4,asize = 4,
+         residuals=FALSE,layout = "tree2",bifactor = "g")
+title("Bifactor")
+model2 <- '
+S1 =~ x1 + x2 + x3
+S2 =~ x4 + x5 + x6
+S3 =~ x7 + x8 + x9
+S1~~S2;S1~~S3;S2~~S3
+'
+semPaths(semPlotModel(model2),
+         style = "lisrel",sizeMan=6,sizeMan2=4.5,label.cex = 2,
+         edge.color = "black",rotation = 2,esize=4,asize = 4,
+         residuals=FALSE,layout = "tree2",bifactor = "g")
+title("Correlated factor model")
+```
+
+# Histórico
+
+-   As ideias iniciais de modelo bifactor retomam os trabalhos clássicos de Spearman (1904) em relação ao fator g da inteligência
+
+-   $$
+    Desempenho = FatorG + FatorEs
+    $$ <font size="2"> No caso do Spearman, havia uma tentativa de remover o erro de medida </font>
+
+-   Outra tradição de uso da análise fatorial tem origem com os trabalhos de Thurstone, que tinha como lógica modelos de fatores correlacionados ($~$ Década de 30)
+
+-   As soluções posteriores (nesse recorte) estavam relacionadas a modelos de segunda ordem e ao uso de análise fatorial exploratória
+
+-   Outras informações podem ser vistas no capítulo 18 do livro Hoyle (2023)
+
+# Diferença entre modelos bifactor e de segunda ordem
+
+-   Possuem semelhanças e diferenças
+-   Avaliam um escore geral
+-   Diferenças sobre o efeito direto nos itens
+-   Diferenças na estimativa de invariância e para estimativas em modelos de SEM completos
+-   Modelo bifactor pode ser utilizado a partir de 2 fatores específicos
+-   Modelos de segunda ordem podem ser utilizados a partir de 2 fatores específicos aplicando restrições extras (como fixando cargas fatoriais), MAS para que você possa de fato avaliar os índices de ajuste do modelo, é necessário ter pelo menos 4 fatores específicos
+
+```{r ,  echo=FALSE, out.width="50%"}
+model1 <- '
+S1 =~ x1 + x2 
+S2 =~ x3 + x4 
+S3 =~ x5 + x6 
+S4 =~ x7 + x8 
+g =~ x1 + x2 + x3 + x4 + x5 + x6 + x7 + x8 +x7 + x8 
+'
+semPaths(semPlotModel(model1),
+         style = "lisrel",sizeMan=6,sizeMan2=4.5,label.cex = 2,
+         edge.color = "black",rotation = 2,esize=4,asize = 4,
+         residuals=FALSE,layout = "tree2",bifactor = "g")
+title("Bifactor model")
+model2 <- '
+S1 =~ fl1*x1 + fl2*x2 
+S2 =~ fl3*x3 + fl4*x4 
+S3 =~ fl5*x5 + fl6*x6 
+S4 =~ fl7*x7 + fl8*x8 
+g =~ fl9*S1+fl10*S2+fl11*S3+fl12*S4
+'
+semPaths(semPlotModel(model2),
+         whatLabels = "labels", edge.label.cex = 1.5,
+         style = "lisrel",sizeMan=6,sizeMan2=4.5,label.cex = 2,
+         edge.color = "black",rotation = 2,esize=4,asize = 4,
+         residuals=FALSE,layout = "tree2",bifactor = "g")
+title("Second order model")
+```
+
+$$x1 \sim IND(fl1*fl9)$$
+
+# Para que serve um modelo bifactor?
+
+-   Análises bi-fatoriais são representações de modelos de análise fatorial em que um fator geral compete com os fatores de domínio específico pela explicação da variância dos itens
+
+-   O fator geral, dessa forma, reflete uma dimensão que é *comum a todos os itens.* Os fatores (domínios) específicos explicam a variância que é restante, ou seja, aquilo que não é explicado pelo fator geral.
+
+-   Como pode ser visto na imagem, em modelos bi-fatoriais as variáveis latentes não são correlacionadas. Assume-se que toda a covariação existente entre os fatores específicos é explicada pelo fator geral
+
+```{r ,  echo=FALSE, out.width="50%"}
+model1 <- '
+S1 =~ x1 + x2 
+S2 =~ x3 + x4 
+g =~ x1 + x2 + x3 + x4 
+'
+semPaths(semPlotModel(model1),
+         style = "lisrel",sizeMan=6,sizeMan2=4.5,label.cex = 2,
+         edge.color = "black",rotation = 2,esize=4,asize = 4,
+         residuals=FALSE,layout = "tree2",bifactor = "g")
+title("Bifactor model")
+```
+
+# Para que serve um modelo bifactor?
+
+-   Modelos bi-fatoriais sugerem que a estrutura de um teste é principalmente unidimensional, mas também é explicada por fatores específicos. Dessa forma, não se encontra uma solução fatorial para a escala nem utilizando um modelo com uma dimensão nem com as dimensões específicas. As duas devem coexistir.
+-   Modelos bi-fatoriais podem revelar fraquezas dos domínios específicos de uma escala. Por exemplo, uma dimensão que não possui cargas fatoriais relevantes após a inclusão do fator geral pode ser um indicativo de que o fator específico não é tão forte. Ou que as cargas fatoriais atribuídas ao fator não são tão relevantes ao construto.
+
+```{r ,  echo=FALSE, out.width="50%"}
+model1 <- '
+S1 =~ x1 + x2 
+S2 =~ x3 + x4 
+g =~ x1 + x2 + x3 + x4 
+'
+semPaths(semPlotModel(model1),
+         style = "lisrel",sizeMan=6,sizeMan2=4.5,label.cex = 2,
+         edge.color = "black",rotation = 2,esize=4,asize = 4,
+         residuals=FALSE,layout = "tree2",bifactor = "g")
+title("Bifactor model")
+```
+
+# Para que serve um modelo bifactor?
+
+-   Modelos bi-fatoriais podem ser utilizados para:
+    (a) repartir a variância entre o que é do fator geral e dos fatores específicos;
+    (b) controlar para multidimensionalidade de medidas que são unidimensionais com nuances de variância específica;
+    (c) julgar se os itens possuem um fator geral forte o suficiente.
+    (d) determinar a adequação de um escore geral para uma escala e se vale a pena utilizar escores específicos das subescalas.
+
+# Fundamentos da análise bifactor
+
+-   A repartição da variância possível a partir de um modelo bifactor é esta:
+
+| **Fator geral** \|\| **Fator específico** \|\| **Variância específica** \|\| **Erro de medida** \|
+
+-   No geral, não conseguimos separar a variância específica do item, então ela é tratada como erro (conceito de nuance de McCrae 2015 talvez ajude a entender isso)
+
+# Fundamentos da análise bifactor
+
+-   Dessa forma, a equação genérica da TCT para o desempenho $X = T + E$ precisa ser expandida (temos duas fontes de *"escore verdadeiro"*)
+
+-   Podemos estender para algo como:
+
+-   $X = C + U$
+
+-   Onde $C$ contempla o fator geral + fator específico e $U$ o erro de medida e a variância do única do item
+
+-   Isso implica que o item possui *duas* fontes de variância sistemática
+
+-   $X = T_{geral} + T_{específico} + E$
+
+-   Isso justifica a necessidade de índices específicos, portanto, para realizar uma avaliação precisa dos modelos
+
+# Problemas com a análise
+
+-   Com a popularidade do uso, aumenta o uso selvagem
+-   Uma forma de refletir sobre o quão apropriado é o uso das análises bifactor está descrito no artigo
+
+[![](bornovalova.png){width="660"}](https://doi.org/10.1016/j.biopsych.2020.01.013)
+
+# Problemas com a análise
+
+-   Não basta usar os índices de ajuste para justificar aceitar um modelo bifactor como o modelo final
+
+    -   Uma primeira inspeção deve estar relacionada ao padrão de cargas fatoriais
+
+```{r echo=FALSE}
+model1 <- "
+S1 =~ '0.78'*x1 + '0.67'*x2 + '0.59'*x3
+S2 =~ '0.31'*x4 + '0.25'*x5 + '0.56'*x6
+S3 =~ '0.21'*x7 + '0.17'*x8 + '0.01'*x9
+g =~ '0.22'*x1 + '0.34'*x2 + '0.01'*x3 + '0.35'*x4 + '0.22'*x5 + '0.19'*x6 + '0.75'*x7 + '0.80'*x8 + '0.89'*x9 
+"
+semPaths(semPlotModel(model1),
+         whatLabels = "labels",edge.label.cex = 1.5,
+         edge.label.position = .7,
+         style = "lisrel",sizeMan=6,sizeMan2=4.5,label.cex = 2,
+         edge.color = "black",rotation = 2,esize=4,asize = 4,
+         residuals=FALSE,layout = "tree2",bifactor = "g")
+title("Weak bifactor model")
+
+
+```
+
+# Problemas com a análise
+
+-   É importante ter uma teoria que embase o uso do fator geral. Ele, além de forte, é passível de interpretação embasada?
+
+-   Revisando:
+
+    -   O fator geral é forte?
+
+    -   Quais fatores são confiáveis?
+
+    -   Qual é o padrão de associação dos fatores com outras variáveis?
+
+# Índices específicos para bifactor
+
+## Ômega hierárquico
+
+-   Considerando a desvantagem da não separação da variância do ômega tradicional, a fórmula do ômega foi expandida para criar um coeficiente de ômega hierárquico $\omega_{H}$, especialmente vantajoso para contexto de modelos bi-fatoriais  
+
+-   O ômega hierárquico contabiliza a variância do fator geral tratando a variância dos fatores específicos como erro  
+
+-   O coeficiente pode ser calculado facilmente utilizando a seguinte fórmula (Rodriguez et al., 2016 **equação 6**):  
+
+-   $$\omega_{H} = {\frac{(\sum \lambda_{fator geral})²} {(\sum \lambda_{fator geral})² + (\sum \lambda_{fator específico1})² + (\sum \lambda_{fator específico2})² + \sum (1 - h²)}}$$
+
+
+# Índices específicos para bifactor
+
+## Ômega hierárquico 
+
+-   A variação do ômega hierárquico é o ômega hierárquico subescala. Serve para calcular a confiabilidade dos fatores específicos  
+
+-   Neste caso, a variância do fator geral é tratada como erro (Rodriguez et al., 2016 **equação 7**)  
+
+-   $$\omega_{HS} = {\frac{(\sum \lambda_{fator específico1})²} {(\sum \lambda_{fator geral})² + (\sum \lambda_{fator específico1})² + \sum (1 - h²)}}$$
+
+
+# Índices específicos para bifactor
+
+## Construct reliability (replicability)
+
+-   A confiabilidade do construto ou replicabilidade do construto pode ser confundida com a consistência interna (porque recebe o mesmo nome de confiabilidade  
+-   Uma forma de evitar essa confusão é pensar na replicabilidade do construto. O índice $H$ é uma forma de se avaliar se a variável latente é bem representada pelo conjunto de itens utilizado (ou seja, a qualidade dos indicadores. Desta forma, uma variável bem representada tende a ser mais replicável entre os estudos. Valores de pelo menos .70 devem ser alcançados  
+-   O índice $H$ pode ser calculado usando a seguinte fórmula (Rodriguez et al., 2016 **equação 9**):  
+-   $$H = 1/[1 + {\frac{1} {\sum_{i=1}^{k} {\frac{\lambda²_{i}} {1 - \lambda²_{i}}} }}]$$  
+
+Onde k é o número de itens  
+
+
+# Índices específicos para bifactor
+
+## Explained common variance (ECV)
+
+-   $ECV$ serve para julgar se os itens (ou conjunto de itens) são essencialmente unidimensionais  
+-   O $ECV$ pode ser calculado com a seguinte fórmula (Rodriguez et al., 2016 **equação 10**):  
+
+$$ECV = {\frac{(\sum \lambda_{fator geral}^2)} {(\sum \lambda_{fator geral}^2) + (\sum \lambda_{fator específico1}^2)+ (\sum \lambda_{fator específico2}^2)}}$$
+
+-   Um $ECV$ de 0.80 indica que o fator geral explica 80% da variância comum aos itens, enquanto os fatores específicos explicam apenas 20% (dividido entre os fatores)  
+-   O $ECV$ também pode ser calculado para os itens individuais, tentando identificar a porcentagem de variância explicada pelo fator geral ao nível dos itens. O $ECV$ pode ser utilizado para criar uma escala mais unidimensional.  
+-   usando $ECV-I$ para selecionar itens mais "unidimensionais" pode ser um boa ideia. para isso, sugere-se utilizar o ponto de corte de .80 ou .85  
+
+# Índices específicos para bifactor
+
+## Percent uncontaminated correlations (ECV)
+
+-   Basicamente, é um indicador do quanto as correlações entre as variáveis observáveis são influenciadas por um único fator dividido pela quantidade de correlações possíveis  
+
+-   Indica, entre outras coisas, o quanto de informação você perde ao forçar uma solução unidimensional a um conjunto de dados multidimensional  
+
+
+-   Quanto maior o valor de PUC, mais indicativo se tem de que a maioria das correlações são informativas do fator geral
+
+
+
+
+# Aplicações usando CFA
+
+```{r}
+pacman::p_load(lavaan, semPlot, tidyverse)
+base <- readRDS("bancobif.rds")
+glimpse(base)
+```
+
+
+# Aplicações usando CFA
+
+Construindo o modelo em três etapas  
+1. Modelo unidimensional  
+2. Modelo de fatores correlacionados  
+3. Modelo bifactor  
+
+```{r}
+model1 <- '
+fator1 =~ q1 + q2 + q3 + q4 + q5 + q6 + q7 + q8 
+'
+fit1 <- cfa(model = model1,
+            data = base,
+            ordered = names(base),
+            estimator = "wlsmv")
+
+summary(fit1, fit.measures = T, standardized = T)
+```
+
+
+
+# Aplicações usando CFA
+
+
+```{r}
+model2 <- '
+fator1 =~ q1 + q2 + q3 + q4
+fator2 =~  q5 + q6 + q7 + q8 
+'
+fit2 <- cfa(model = model2,
+            data = base,
+            ordered = names(base),
+            estimator = "wlsmv")
+
+summary(fit2, fit.measures = T, standardized = T)
+```
+
+
+
+# Aplicações usando CFA
+
+
+```{r}
+model3 <- '
+fator1 =~ q1 + q2 + q3 + q4
+fator2 =~  q5 + q6 + q7 + q8 
+geral =~ q1 + q2 + q3 + q4 + q5 + q6 + q7 + q8 
+'
+fit3 <- cfa(model = model3,
+            data = base,
+            ordered = names(base),
+            estimator = "wlsmv",
+            std.lv = T)
+
+```
+
+
+# Aplicações usando CFA
+
+
+```{r}
+model3 <- '
+fator1 =~ q1 + q2 + q3 + q4
+fator2 =~  q5 + q6 + q7 + q8 
+geral =~ q1 + q2 + q3 + q4 + q5 + q6 + q7 + q8
+'
+fit3 <- cfa(model = model3,
+            data = base,
+            ordered = names(base),
+            estimator = "wlsmv",
+            std.lv = T,
+            orthogonal = T)
+
+summary(fit3, fit.measures = T, standardized = T)
+```
+
+
+# Gráfico
+
+
+
+```{r}
+semPaths(fit3,
+         whatLabels = "std.all",edge.label.cex = 1.5,
+         edge.label.position = .7,
+         style = "lisrel",sizeMan=6,sizeMan2=4.5,label.cex = 2,
+         edge.color = "black",rotation = 2,esize=4,asize = 4,
+         residuals=FALSE,layout = "tree2",bifactor = "geral",
+         thresholds = F, intercepts = F,
+         exoCov = FALSE)
+```
+
+
+
+# Calculando os índices
+
+  
+
+```{r}
+library(BifactorIndicesCalculator)
+bifactorIndices(fit3)
+
+```
+
+# Adendo - aplicações com EFA
+
+```{r}
+library(psych)
+library(GPArotation)
+```
+
+# Transformação Schmid-Leiman  
+
+Necessita que sejam pelo menos 3 fatores específicos :(
+
+```{r}
+corrs <- polychoric(base)$rho
+fitsch <- schmid(corrs, nfactors = 2, fm = "minres", rotate = "oblimin")
+```
+
+
+```{r}
+fitsch <- schmid(corrs, nfactors = 3, fm = "minres", rotate = "oblimin")
+fitsch
+```
+
+
+
+# Método Jenrich e Bentler
+
+
+
+```{r}
+fitjb <- fa(base, nfactors = 3, rotate = "bifactor", cor = "poly")
+fitjb
+```
+
+
+# Método Jenrich e Bentler
+
+
+
+```{r}
+fitjb2 <- fa(base, nfactors = 3, rotate = "biquartimin", cor = "poly")
+fitjb2
+```
+
+
+
+# Rotação Target
+
+
+
+```{r}
+targ <- make.keys(8, list(geral = 1:8, f1 = c(1:4), f2 = c(5:8)))
+targ <- scrub(targ, isvalue=1)
+targ <- list(targ)
+targ
+```
+
+# Rotação target
+
+
+```{r}
+fittarget <- fa(base, nfactors = 3, rotate = "TargetQ", 
+                Target = targ,
+                cor = "poly")
+fittarget
+```
+

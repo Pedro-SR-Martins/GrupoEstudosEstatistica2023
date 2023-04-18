@@ -36,6 +36,8 @@ O que esperar para o encontro de hoje?\
 -   Esse é o primeiro passo para começar a entender modelos lineares
     generalizados (*mesmo que muitas vezes não seja ensinado assim*)
 
+![](https://github.com/Pedro-SR-Martins/GrupoEstudosEstatistica2023/blob/main/regressao_logistica/image.jpg?raw=true){width="466"}
+
 # Quando usar regressão logística
 
 -   Regressão logística é o tipo de ferramenta que usamos quando nossa
@@ -106,7 +108,8 @@ $$\hat{y}_{i} = \beta_{0} + \beta_{1}x_{1i} +\beta_{n}x_{ni} + e_{i}$$
 
 ```{r echo=FALSE}
 pacman::p_load(tidyverse, easystats)
-base <- readRDS("bancolog.rds")
+
+base <- readRDS(url("https://github.com/Pedro-SR-Martins/GrupoEstudosEstatistica2023/blob/main/bancos/bancolog.rds?raw=true", method="libcurl"))
 
 fitfake <- lm(as.numeric(passoumat) ~ estudo + notaport,
               data = base)
@@ -184,7 +187,14 @@ log((.7/.3))
 log((.3/.7))
 ```
 
-Colocar imagem aqui
+
+```{r}
+data.frame(probability = c(".00",".10",".30",".50",".70",".90","1.00"),
+           frequency = c("0/10","1/9","3/7","5/5","7/3","9/1","10/0"),
+           odds = c(".00",".111",".428","1.000","2.333","9.000","NA"),
+           Log_odds = c("NA","22.197","2.847",".000",".847","2.197","NA")) %>% 
+  kable()
+```
 
 # Usos da regressão logística
 
@@ -345,20 +355,17 @@ parameters(glm(passoumat ~ estudo + notaport,data = base,
     -   A especificidade nos diz o percentual de verdadeiros negativos
         $P(\hat{y} = 0| y = 0)$
 
-
 # Prática - Regressão logística no R
 
 Subindo o banco de dados e inspencionando
 
 ```{r}
 pacman::p_load(tidyverse, easystats, car, janitor, jtools)
-base <- readRDS("bancolog.rds")
+base <- readRDS(url("https://github.com/Pedro-SR-Martins/GrupoEstudosEstatistica2023/blob/main/bancos/bancolog.rds?raw=true", method="libcurl"))
 glimpse(base)
 ```
 
-
 # Regressão logística no R
-
 
 ```{r}
 base <- base %>% 
@@ -372,12 +379,9 @@ head(base)
 
 # Regressão logística no R
 
-
-
 ```{r}
 data.frame(psych::describe(base)) %>% select(n, mean, sd, median, min, max)
 ```
-
 
 ```{r}
 base %>% 
@@ -385,9 +389,6 @@ base %>%
   group_by(passoumat) %>% 
   count(interessemat)
 ```
-
-
-
 
 # Regressão logística no R
 
@@ -399,10 +400,7 @@ fit1 <- glm(passoumat ~ sexo + estudo + notaport + interessemat,
             family = binomial("logit"))
 ```
 
-
-
 # Avaliação de pressupostos
-
 
 Linearidade
 
@@ -410,18 +408,17 @@ Linearidade
 boxTidwell(fit1$linear.predictors ~ estudo + notaport,
               data = base)
 ```
-  
+
 inspeção visual
-  
-  
+
 ```{r}
 plot(fit1$linear.predictors ~ base$notaport)
 ```
 
 # Avaliação de pressupostos
 
-
-Caso as coisas fiquem esquisitas aqui, você deve acrescentar a interação da sua VI com o log dela, algo como:  
+Caso as coisas fiquem esquisitas aqui, você deve acrescentar a interação
+da sua VI com o log dela, algo como:
 
 ```{r}
 fit2 <- glm(passoumat ~ sexo + estudo + 
@@ -433,12 +430,11 @@ fit2 <- glm(passoumat ~ sexo + estudo +
 Anova(fit2)
 ```
 
-
 # Avaliação de pressupostos
+
 Independência dos erros
 
-
-```{r,  warning = FALSE, echo=FALSE, out.width="50%"}
+```{r}
 data.frame(residuals = residuals.glm(fitlog, "deviance")) %>% 
   rowid_to_column() %>% 
   ggplot(aes(x = rowid, y=residuals))+
@@ -451,9 +447,10 @@ plot(residuals.glm(fitlog, "deviance"))
 
 # Avaliação de pressupostos
 
-Ausência de multicolinearidade  
+Ausência de multicolinearidade
 
-Até 5 pode ser considerado aceitável. Mas os valores poderiam ser melhores...  
+Até 5 pode ser considerado aceitável. Mas os valores poderiam ser
+melhores...
 
 ```{r}
 vif(fit1)
@@ -477,17 +474,11 @@ critbetas
 dfbeta(fit1) %>% psych::describe() %>% data.frame() %>% select(min,max)
 ```
 
-
-
 # Regressão logística no R
-
-
 
 ```{r}
 summary(fit1)
 ```
-
-
 
 # Regressão logística no R
 
@@ -505,15 +496,11 @@ Anova(fit1)
 
 # Regressão logística no R
 
-
 ```{r}
 performance_hosmer(fit1)
 ```
 
-
 # Regressão logística no R
-
-
 
 ```{r}
 performance_pcp(fit1, method = "Gelman-Hill")
@@ -521,7 +508,7 @@ performance_pcp(fit1, method = "Gelman-Hill")
 ```
 
 # Regressão logística no R
-  
+
 ```{r}
 predicted <- predict(fit1, base, type = "response")
 predicted <- ifelse(predicted > 0.5, 1, 0)
@@ -535,9 +522,7 @@ caret::confusionMatrix(reference = base$passoumat,
 
 ```
 
-
 # Visualizando o modelo
-
 
 ```{r}
 effect_plot(fit1, pred = notaport,
@@ -547,17 +532,12 @@ effect_plot(fit1, pred = notaport,
 
 # Visualizando o modelo
 
-
 ```{r}
 effect_plot(fit1, pred = sexo,
             interval = T)
 ```
 
-
-
-
 # Adendo outliers
-
 
 ```{r}
 source("https://raw.githubusercontent.com/Pedro-SR-Martins/my_funs/main/aux_glm")
@@ -571,3 +551,17 @@ outresults$plot_betas
 ```{r}
 outresults$noout_data %>% head()
 ```
+
+# Referências
+
+-   Fávero, L. P., & Belfiore, P. (2017). Manual de análise de dados:
+    estatística e modelagem multivariada com Excel®, SPSS® e Stata®.
+    Elsevier Brasil.\
+-   Field, A. (2018). Discovering Statistics Using IBM SPSS Statistics.
+    Discovering Statistics Using IBM SPSS Statistics.
+-   Gelman, A., Hill, J., & Vehtari, A. (2020). Regression and other
+    stories. Cambridge University Press.
+-   Long, J. S., & Freese, J. (2014). Regression models for categorical
+    dependent variables using Stata (Vol. 7). Stata press.
+-   Hair Jr, J. F., Black, W. C., Babin, B. J., & Anderson, R. E.
+    (2019). Multivariate data analysis.

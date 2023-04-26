@@ -188,11 +188,11 @@ log((.3/.7))
 ```
 
 
-```{r}
+```{r echo=FALSE}
 data.frame(probability = c(".00",".10",".30",".50",".70",".90","1.00"),
            frequency = c("0/10","1/9","3/7","5/5","7/3","9/1","10/0"),
            odds = c(".00",".111",".428","1.000","2.333","9.000","NA"),
-           Log_odds = c("NA","22.197","2.847",".000",".847","2.197","NA")) %>% 
+           Log_odds = c("NA","-2.197","-0.847",".000",".847","2.197","NA")) %>% 
   kable()
 ```
 
@@ -381,6 +381,7 @@ head(base)
 
 ```{r}
 data.frame(psych::describe(base)) %>% select(n, mean, sd, median, min, max)
+psych::describe(base)
 ```
 
 ```{r}
@@ -398,7 +399,11 @@ Finalmente fazendo o modelo
 fit1 <- glm(passoumat ~ sexo + estudo + notaport + interessemat,
             data = base,
             family = binomial("logit"))
+
 ```
+
+
+pesquisar diferença entre logit e probit
 
 # Avaliação de pressupostos
 
@@ -442,7 +447,7 @@ data.frame(residuals = residuals.glm(fitlog, "deviance")) %>%
   geom_hline(yintercept = 0, color = "red", linewidth = 1.2)+
   theme_classic()
   
-plot(residuals.glm(fitlog, "deviance"))
+plot(residuals.glm(fit1, "deviance"))
 ```
 
 # Avaliação de pressupostos
@@ -484,6 +489,7 @@ summary(fit1)
 
 ```{r}
 summ(fit1, exp = T, confint = T, digits = 3)
+
 ```
 
 # Regressão logística no R

@@ -1,5 +1,7 @@
 library(simglm)
 
+pacman::p_load(tidyverse, easystats)
+
 
 sim_args <- list(formula = y ~ 1 + time + gpa + sat + (1 + time | id), 
                  fixed = list(time = list(var_type = 'time',

@@ -26,7 +26,8 @@ Encontro 9 – *Multi trait multimethod matrix* (MTMM) – validade convergente 
 Encontro 10 – Tema livre / finalização - 22/05  
 
 
-**BIBLIOGRAFIA**
+**BIBLIOGRAFIA**  
+
 *Bibliografia básica*
 1. Fávero, L. P., & Belfiore, P. (2017). Manual de análise de dados: estatística e modelagem multivariada com Excel®, SPSS® e Stata®. ELSEVIER.  
   

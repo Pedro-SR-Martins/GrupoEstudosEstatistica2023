@@ -20,8 +20,12 @@ Encontro 10 – Tema livre / finalização - 22/05
 **BIBLIOGRAFIA**
 *Bibliografia básica*
 1. Fávero, L. P., & Belfiore, P. (2017). Manual de análise de dados: estatística e modelagem multivariada com Excel®, SPSS® e Stata®. ELSEVIER.  
+  
 2. Field, A. (2020). Descobrindo a estatística usando o SPSS (5ª ed). Penso.  
+  
 3. Hoyle, R. H. (2023). Handbook of structural equation modeling (2ª ed.). Guilford Press.  
+
+
 *Bibliografia complementar*
 1. Bornovalova, M. A., Choate, A. M., Fatimah, H., Petersen, K. J., & Wiernik, B. M. (2020). Appropriate Use of Bifactor Analysis in Psychopathology Research: Appreciating Benefits and Limitations. Biological Psychiatry, 88(1), 18–27. https://doi.org/10.1016/j.biopsych.2020.01.013
 2. de Melo, M. B., Daldegan-Bueno, D., Menezes Oliveira, M. G., & de Souza, A. L. (2022). Beyond ANOVA and MANOVA for repeated measures: Advantages of generalized estimated equations and generalized linear mixed models and its use in neuroscience research. The European Journal of Neuroscience, 56(12), 6089–6098. https://doi.org/10.1111/ejn.15858

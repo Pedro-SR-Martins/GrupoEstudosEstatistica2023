@@ -21,9 +21,9 @@ Encontro 7 – Dados longitudinais – *generalized estimating equations* (GEE) 
 
 Encontro 8 – Dados aninhados – modelo multinível - 01/06  
 
-Encontro 9 – *Multi trait multimethod matrix* (MTMM) – validade convergente - 15/05  
+Encontro 9 – *Multi trait multimethod matrix* (MTMM) – validade convergente - 15/06  
 
-Encontro 10 – Tema livre / finalização - 22/05  
+Encontro 10 – Tema livre / finalização - 22/06    
 
 
 **BIBLIOGRAFIA**  

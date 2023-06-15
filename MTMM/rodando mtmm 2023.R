@@ -7,7 +7,7 @@ base <- readRDS(url("https://github.com/Pedro-SR-Martins/GrupoEstudosEstatistica
 
 glimpse(base)
 
-
+psych::describe(base)
 # para organizar, comeco com so os tracos
 
 tracos <- '
@@ -52,6 +52,7 @@ ind =~   ind1 +  ind2 + ind3 +  ind4 +  ind5 +  ind6 +  ind7 +  ind8 +  ind9 +  
 # tracos e metodos nao correlacionam
 dass ~~ 0*dep + 0*ans + 0*est
 ind ~~ 0*dep + 0*ans + 0*est
+
 '
 fit_model1 <- cfa(model = model1,
                    estimator = "WLSMV",
@@ -180,9 +181,14 @@ semPaths(fit_model4,
 
 
 # validade convergente - se o modelo 1 for melhor -----
-summary(compareFit(fit_model1, fit_model2),
+summary(compareFit(fit_model1,fit_model2),
         fit.measures = c("chisq.scaled", "df.scaled", 
                          "pvalue.scaled", "cfi.scaled"))
+# usar as mesmas regras do teste de invariancia
+# diferencas de CFI maiores que 0.01 sao problema
+# se o qui-quadrado for sig tambem eh problema
+# qui quadrado quanto menor melhor
+
 # se o modelo 1 for melhor, ha indicacao de que ha convergencia entre os construtos, ou seja, nao ha apenas variancia de metodo
 # se o modelo dois for melhor, isso indica que so os metodos (escalas, neste caso) explicam o jeito de responder as perguntas
 
